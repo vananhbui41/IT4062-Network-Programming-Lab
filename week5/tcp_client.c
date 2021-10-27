@@ -4,55 +4,128 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <unistd.h>
 
-#define SERVER_ADDR "127.0.0.1"
-#define SERVER_PORT 5550
+//#define SERVER_ADDR "127.0.0.1"
+//#define SERVER_PORT 5550
 #define BUFF_SIZE 8192
+#define MAX 100
 
-int main(){
-	int client_sock;
-	char buff[BUFF_SIZE];
-	struct sockaddr_in server_addr; /* server's address information */
-	int msg_len, bytes_sent, bytes_received;
-	
-	//Step 1: Construct socket
-	client_sock = socket(AF_INET,SOCK_STREAM,0);
-	
-	//Step 2: Specify server address
-	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(SERVER_PORT);
-	server_addr.sin_addr.s_addr = inet_addr(SERVER_ADDR);
-	
-	//Step 3: Request to connect server
-	if(connect(client_sock, (struct sockaddr*)&server_addr, sizeof(struct sockaddr)) < 0){
-		printf("\nError!Can not connect to sever! Client exit imediately! ");
+int main(int argc, char const *argv[]){
+
+	//check argument
+	if (argc!=3){
+		printf("Invalid argument\n");
 		return 0;
 	}
-		
-	//Step 4: Communicate with server			
-	while(1){
-		//send message
-		printf("\nInsert string to send:");
-		memset(buff,'\0',(strlen(buff)+1));
-		fgets(buff, BUFF_SIZE, stdin);		
-		msg_len = strlen(buff);
-		if (smsg_len == 0) break;
-		
-		bytes_sent = send(client_sock, buff, msg_len, 0);
-		if(bytes_sent <= 0){
+
+	int client_sock;
+	char username[MAX], password[MAX], buff[MAX];
+	struct sockaddr_in server_addr;
+	int bytes_sent, bytes_received;
+
+	// Construct socket
+	client_sock = socket(AF_INET, SOCK_STREAM, 0);
+
+	// Specify server address
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = htons(atoi(argv[2]));
+	server_addr.sin_addr.s_addr = inet_addr(argv[1]);
+
+	// Request to connect server
+	if (connect(client_sock, (struct sockaddr *)&server_addr, sizeof(struct sockaddr)) < 0)
+	{
+		printf("\nError: Can not connect to sever! Client exit imediately! ");
+		return 0;
+	}
+
+	// Communicate with server
+
+	// get username
+	puts("Please enter username and password");
+	printf("Username: ");
+	fgets(username, MAX, stdin);
+	username[strcspn(username, "\n")] = '\0';
+
+	// send username to server
+	if (0 >= (bytes_sent = send(client_sock, username, strlen(username), 0)))
+	{
+		printf("\nConnection closed!\n");
+		return 0;
+	}
+
+	// receive server reply
+	if (0 >= (bytes_received = recv(client_sock, buff, MAX - 1, 0)))
+	{
+		printf("\nError!Cannot receive data from sever!\n");
+		return 0;
+	}
+
+	// exit if user not found on server
+	buff[bytes_received] = '\0';
+	if (0 == strcmp(buff, "0"))
+	{
+		puts("Account not existed\n");
+		return 0;
+	}
+	else if (0 == strcmp(buff, "2"))
+	{
+		puts("Account is blocked!\n");
+		return 0;
+	}
+
+	while (1)
+	{
+		// get password
+		printf("Password: ");
+		fgets(password, MAX, stdin);
+		password[strcspn(password, "\n")] = '\0';
+
+		// send password to server
+		if (0 >= (bytes_sent = send(client_sock, password, strlen(password), 0)))
+		{
 			printf("\nConnection closed!\n");
-			break;
+			return 0;
 		}
-		
-		//receive echo reply
-		bytes_received = recv(client_sock, buff, BUFF_SIZE-1, 0);
-		if(bytes_received <= 0){
+
+		memset(buff, '\0', MAX);
+		if (0 >= (bytes_received = recv(client_sock, buff, MAX - 1, 0)))
+		{
 			printf("\nError!Cannot receive data from sever!\n");
-			break;
+			return 0;
 		}
-		
 		buff[bytes_received] = '\0';
-		printf("Reply from server: %s", buff);
+
+		if (0 == strcmp(buff, "0"))
+		{ // if pass is wrong < 3 times
+			puts("\nPassword is not correct. Please try again\n");
+			continue;
+		}
+		else if (0 == strcmp(buff, "2"))
+		{ // wrong 3 times
+			puts("\nAccount is blocked!\n");
+			return 0;
+		}
+		else if (0 == strcmp(buff, "1"))
+		{ // right pass
+            char bye[10];
+			puts("\nLogin is succesfull! \nPress \"bye\" to log out and exit\n");
+            fgets(bye, MAX, stdin);
+            bye[strcspn(bye, "\n")] = '\0';
+            if (strcmp(bye, "bye") == 0)
+            {
+                printf("Goodbye %s\n", username);
+			    return 0;
+            }
+		}
+		else
+		{
+			puts(buff);
+			puts("Server error\n");
+			return 1;
+		}
 	}
 	
 	//Step 4: Close socket

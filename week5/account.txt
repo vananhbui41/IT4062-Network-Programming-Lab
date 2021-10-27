@@ -1,4 +1,4 @@
-vananh 123123 1
+vananh 123123 0
 hello 456 1
 admin 0000 1
-noname none 1
+noname none 0
