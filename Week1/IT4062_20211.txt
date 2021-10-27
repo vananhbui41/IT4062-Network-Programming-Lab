@@ -1,0 +1,5 @@
+SubjectID|IT4062
+Subject|Net Workprogramming
+F|30|70
+Semester|20211
+Student Count|38

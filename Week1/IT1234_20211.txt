@@ -1,0 +1,5 @@
+SubjectID|IT1234
+Subject|Tets
+F|30|70
+Semester|20211
+Student Count|30
