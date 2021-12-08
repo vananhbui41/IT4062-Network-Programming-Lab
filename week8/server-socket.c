@@ -25,17 +25,18 @@ int main()
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(9999);
-    server_addr.sin_addr.s_addr = INADDR_ANY;
+    server_addr.sin_addr.s_addr = INADDR_ANY; //server chấp nhận bất kì địa chỉ IP nào đến 
     
     //bind the socket to the specified IP addr and port
+	// chiếm cổng trên server
     if (bind(server_socket, (struct sockaddr*) &server_addr, sizeof(server_addr))!=0){
 	printf("socket bind failed...\n"); 
         exit(0);
 	}
     else
 	printf("Socket successfully binded..\n"); 
-    
-    if (listen(server_socket, 3)!=0){
+    // lắng nghe trên dịch vụ
+    if (listen(server_socket, 3)!=0){ //cố định số luồng là 3
 		printf("Listen failed...\n"); 
         exit(0); 
     } 
@@ -44,12 +45,13 @@ int main()
     
     int no_threads=0;
     pthread_t threads[3];
-    while (no_threads<3){
+    while (no_threads<3){ //nếu số lượng thread tạo ra <3 => tiếp tục xử lý
 	printf("Listening...\n");
-	int client_socket = accept(server_socket, NULL, NULL);
+	int client_socket = accept(server_socket, NULL, NULL);// lắng nghe kết nối client
 	puts("Connection accepted");
-	if( pthread_create( &threads[no_threads], NULL ,  connection_handler , &client_socket) < 0){
-	perror("Could not create thread");
+	if( pthread_create( &threads[no_threads], NULL ,  connection_handler , &client_socket) < 0){//tạo thread xử lý kết nối client
+	//quá trình xử lý nằm trong connection_handler
+	perror("Could not create thread");//Không tạo ra được luồng
 	return 1;}
     	if (client_socket < 0) { 
         	printf("server acccept failed...\n"); 
@@ -58,12 +60,12 @@ int main()
     	else
         	printf("Server acccept the client...\n");
 	puts("Handler assigned");
-	no_threads++;
+	no_threads++;// tạo luồng thành công => tăng giá trị số luồng
 	}
 	int k=0;
     for (k=0;k<3;k++){
-	pthread_join(threads[k],NULL);
-}
+		pthread_join(threads[k],NULL);//luồng mới lấy lại tài nguyên của luồng cũ vì luồng cũ vẫn chưa giải phóng tài nguyên
+	}
 
     //int send_status;
     //send_status=send(client_socket, server_message, sizeof(server_message), 0);
@@ -72,7 +74,8 @@ int main()
     return 0;
 }
 
-
+// Hàm xử lý dữ liệu từ client
+// Nhận đoạn text từ client và gửi lại thông điệp cho client
 void *connection_handler(void *client_socket){
 	int socket = *(int*) client_socket;
 	int read_len;
