@@ -5,13 +5,15 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <string.h>
+#include <ctype.h>
+#include <unistd.h>
 
 //Remember to use -pthread when compiling this server's source code
 void *connection_handler(void *);
 
 int main()
 {
-    char server_message[100] = "Hello from Server!!\n";
+    // char server_message[100] = "Hello from Server!!\n";
     int server_socket;
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
 	
@@ -87,8 +89,17 @@ void *connection_handler(void *client_socket){
 	{
 		//end of string marker
 		client_message[read_len] = '\0';
-		if(strcmp(client_message,"exit")==0){break;}
+		if((strcmp(client_message,"q")==0) || (strcmp(client_message,"Q")==0) ){break;}
 		//Send the message back to client
+		for (int i=0; i < strlen(client_message); i++){
+			if (!isalpha(client_message[i])){
+				strcpy(client_message,"Wrong format text\n");
+				break;
+			}
+			else {
+				client_message[i] = toupper(client_message[i]);
+			}
+		}
 		send_status=send(socket , client_message , strlen(client_message),0);	
 	}
 	
