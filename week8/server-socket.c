@@ -11,6 +11,70 @@
 //Remember to use -pthread when compiling this server's source code
 void *connection_handler(void *);
 
+typedef struct node{
+	char username[MAX];
+	char pass[MAX];
+	int status;
+	struct node *next;
+} node_a;
+
+// file -> linked list 
+node_a *loadData(char *filename){
+	int status, count =0;
+	FILE *f;
+	char username[MAX], pass[MAX];
+	node_a *head, *current;
+	head = current = NULL;
+
+	printf("Loading data...\n");
+	// open file
+	if((f = fopen(filename,"r"))==NULL){
+		printf("Failed to open file");
+		exit(0);
+	}
+
+	//data -> linked list
+	while(fscanf(f,"%s %s %d\n", username,pass,&status) != EOF){
+		node_a *node = malloc(sizeof(node_a));
+		strcpy(node->username, username);
+		strcpy(node->pass,pass);
+		node->status = status;
+
+		if(head == NULL)
+			current = head = node;
+		else
+			current = current->next = node;
+		count++;
+	}
+
+	fclose(f);
+	printf("Successfully loaded %d account(s)\n",count);
+	return head;
+}
+
+//find account
+node_a *findNode(node_a *head, char *username){
+	node_a *current = head;
+	while(current != NULL){
+		if (0 == strcmp(current->username, username))
+			return current;
+		current = current->next;
+	}
+
+	return NULL;
+}
+
+// linked list -> file
+void saveData(node_a *head, char *filename){
+	FILE *f;
+	f = fopen(filename,"w");
+	node_a *current;
+	for (current = head; current; current = current->next)
+		fprintf(f, "%s %s %d\n", current->username, current->pass, current->status);
+	fclose(f);
+}
+
+
 int main()
 {
     // char server_message[100] = "Hello from Server!!\n";
